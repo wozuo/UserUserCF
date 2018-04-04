@@ -14,7 +14,7 @@ import (
 type User struct {
 	UserID uint32
 	Ratings []float32
-	simToUsers []float32
+	SimToUsers []float32
 }
 
 func loadCSV() ([]User, []string) {
@@ -80,7 +80,7 @@ func pearsonCorrelation(users []User) []User {
 					p3 += (users[j].Ratings[k] - avg_B) * (users[j].Ratings[k] - avg_B)
 				}
 			}
-			users[i].simToUsers = append(users[i].simToUsers, float32((float64(p1) / (math.Sqrt(float64(p2)) * math.Sqrt(float64(p3))))))
+			users[i].SimToUsers = append(users[i].SimToUsers, float32((float64(p1) / (math.Sqrt(float64(p2)) * math.Sqrt(float64(p3))))))
 		}
 	}
 	return users
@@ -91,6 +91,6 @@ func main() {
 	//fmt.Println("Done! %v %v", users, movies)
 	users, _ := loadCSV()
 	users = pearsonCorrelation(users)
-	fmt.Println("Similarity values of user 0: ", users[0].simToUsers)
+	fmt.Println("Similarity values of user 0: ", users[0].SimToUsers)
 	fmt.Println("Done!")
 }
