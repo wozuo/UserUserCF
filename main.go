@@ -9,12 +9,18 @@ import (
 	"log"
 	"strconv"
 	"math"
+	"sort"
 )
 
 type User struct {
-	UserID uint32
-	Ratings []float32
-	SimToUsers []float32
+	UserID int
+	Ratings []float64
+	SimToUsers []float64
+}
+
+type KeyValue struct {
+	Key int
+	Value float64
 }
 
 func loadCSV() ([]User, []string) {
@@ -37,14 +43,14 @@ func loadCSV() ([]User, []string) {
 			lineNbr++
 			continue
 		}
-		var ratings []float32
+		var ratings []float64
 		for i := 1; i < len(line); i++ {
-			floatRating, _ := strconv.ParseFloat(line[i], 32)
-			ratings = append(ratings, float32(floatRating))
+			floatRating, _ := strconv.ParseFloat(line[i], 64)
+			ratings = append(ratings, floatRating)
 		}
-		intID, _ := strconv.ParseInt(line[0], 0, 32)
+		intID, _ := strconv.ParseInt(line[0], 0, 64)
 		users = append(users, User{
-			UserID: uint32(intID),
+			UserID: int(intID),
 			Ratings: ratings,
 		})
 	}
@@ -54,15 +60,15 @@ func loadCSV() ([]User, []string) {
 // Pearson correlation to compute similarity between users
 func pearsonCorrelation(users []User) []User {
 	for i := 0; i < len(users); i++ {
-		var avg_A, avg_B float32
-		var notNull uint32
+		var avg_A, avg_B float64
+		var notNull int
 		for j := 0; j < len(users[i].Ratings); j++ {
 			avg_A += users[i].Ratings[j]
 			if users[i].Ratings[j] != 0 {
 				notNull += 1
 			}
 		}
-		avg_A = avg_A / float32(notNull)
+		avg_A = avg_A / float64(notNull)
 		for j := 0; j < len(users); j++ {
 			notNull = 0
 			for k := 0; k < len(users[j].Ratings); k++ {
@@ -71,8 +77,8 @@ func pearsonCorrelation(users []User) []User {
 					notNull += 1
 				}
 			}
-			avg_B = avg_B / float32(notNull)
-			var p1, p2, p3 float32
+			avg_B = avg_B / float64(notNull)
+			var p1, p2, p3 float64
 			for k := 0; k < len(users[j].Ratings); k++ {
 				if users[j].Ratings[k] != 0 && users[i].Ratings[k] != 0 {
 					p1 += (users[i].Ratings[k] - avg_A) * (users[j].Ratings[k] - avg_B)
@@ -80,10 +86,23 @@ func pearsonCorrelation(users []User) []User {
 					p3 += (users[j].Ratings[k] - avg_B) * (users[j].Ratings[k] - avg_B)
 				}
 			}
-			users[i].SimToUsers = append(users[i].SimToUsers, float32((float64(p1) / (math.Sqrt(float64(p2)) * math.Sqrt(float64(p3))))))
+			users[i].SimToUsers = append(users[i].SimToUsers, (p1 / (math.Sqrt(p2) * math.Sqrt(p3))))
 		}
 	}
 	return users
+}
+
+func getTopSimNeighbors(ownIndex int, n int, simUsers []float64) []KeyValue {
+	var topNeighbors []KeyValue
+	for i := 0; i < len(simUsers); i++ {
+		if i != ownIndex {
+			topNeighbors = append(topNeighbors, KeyValue{i, simUsers[i]})
+		}
+	}
+	sort.Slice(topNeighbors, func(i, j int) bool {
+		return topNeighbors[i].Value > topNeighbors[j].Value
+	})
+	return topNeighbors[:n]
 }
 
 func main() {
@@ -92,5 +111,7 @@ func main() {
 	users, _ := loadCSV()
 	users = pearsonCorrelation(users)
 	fmt.Println("Similarity values of user 0: ", users[0].SimToUsers)
+	topNeighbors := getTopSimNeighbors(0, 5, users[0].SimToUsers)
+	fmt.Println("Top neighbors: ", topNeighbors)
 	fmt.Println("Done!")
 }
