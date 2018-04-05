@@ -16,6 +16,7 @@ type User struct {
 	UserID int
 	Ratings []float64
 	SimToUsers []float64
+	AverageRating float64
 }
 
 type KeyValue struct {
@@ -69,6 +70,7 @@ func pearsonCorrelation(users []User) []User {
 			}
 		}
 		avg_A = avg_A / float64(notNull)
+		users[i].AverageRating = avg_A
 		for j := 0; j < len(users); j++ {
 			notNull = 0
 			for k := 0; k < len(users[j].Ratings); k++ {
@@ -81,9 +83,9 @@ func pearsonCorrelation(users []User) []User {
 			var p1, p2, p3 float64
 			for k := 0; k < len(users[j].Ratings); k++ {
 				if users[j].Ratings[k] != 0 && users[i].Ratings[k] != 0 {
-					p1 += (users[i].Ratings[k] - avg_A) * (users[j].Ratings[k] - avg_B)
-					p2 += (users[i].Ratings[k] - avg_A) * (users[i].Ratings[k] - avg_A)
-					p3 += (users[j].Ratings[k] - avg_B) * (users[j].Ratings[k] - avg_B)
+					p1 += ((users[i].Ratings[k] - avg_A) * (users[j].Ratings[k] - avg_B))
+					p2 += ((users[i].Ratings[k] - avg_A) * (users[i].Ratings[k] - avg_A))
+					p3 += ((users[j].Ratings[k] - avg_B) * (users[j].Ratings[k] - avg_B))
 				}
 			}
 			users[i].SimToUsers = append(users[i].SimToUsers, (p1 / (math.Sqrt(p2) * math.Sqrt(p3))))
@@ -105,13 +107,58 @@ func getTopSimNeighbors(ownIndex int, n int, simUsers []float64) []KeyValue {
 	return topNeighbors[:n]
 }
 
+// n: number of predictions we want to get
+func notNormalizedPrediction(ownIndex int, n int, topNeighbors []KeyValue, users []User, movies []string) []string {
+	var topMovies []KeyValue
+	for i := 0; i < len(movies); i++ {
+		var p1, p2 float64
+		for j := 0; j < len(topNeighbors); j++ {
+			p1 += (users[topNeighbors[j].Key].Ratings[i] * users[ownIndex].SimToUsers[j])
+			p2 += users[ownIndex].SimToUsers[j]
+		}
+		var prediction = p1 / p2
+		topMovies = append(topMovies, KeyValue{i, prediction})
+	}
+	sort.Slice(topMovies, func(i, j int) bool {
+		return topMovies[i].Value > topMovies[j].Value
+	})
+	var topMovieNames []string
+	for i := 0; i < n; i++ {
+		topMovieNames = append(topMovieNames, movies[topMovies[i].Key])
+	}
+	return topMovieNames
+}
+
+// n: number of predictions we want to get
+func normalizedPrediction(ownIndex int, n int, topNeighbors []KeyValue, users []User, movies []string) []string {
+	var topMovies []KeyValue
+	for i := 0; i < len(movies); i++ {
+		var p1, p2 float64
+		for j := 0; j < len(topNeighbors); j++ {
+			p1 += ((users[topNeighbors[j].Key].Ratings[i] - users[topNeighbors[j].Key].AverageRating) * users[ownIndex].SimToUsers[j])
+			p2 += users[ownIndex].SimToUsers[j]
+		}
+		var prediction = users[ownIndex].AverageRating + (p1 / p2)
+		topMovies = append(topMovies, KeyValue{i, prediction})
+	}
+	sort.Slice(topMovies, func(i, j int) bool {
+		return topMovies[i].Value > topMovies[j].Value
+	})
+	var topMovieNames []string
+	for i := 0; i < n; i++ {
+		topMovieNames = append(topMovieNames, movies[topMovies[i].Key])
+	}
+	return topMovieNames
+}
+
 func main() {
 	//users, movies := loadCSV()
 	//fmt.Println("Done! %v %v", users, movies)
-	users, _ := loadCSV()
+	users, movies := loadCSV()
 	users = pearsonCorrelation(users)
-	fmt.Println("Similarity values of user 0: ", users[0].SimToUsers)
-	topNeighbors := getTopSimNeighbors(0, 5, users[0].SimToUsers)
+	fmt.Println("Similarity values of user 4: ", users[4].SimToUsers)
+	topNeighbors := getTopSimNeighbors(4, 5, users[4].SimToUsers)
 	fmt.Println("Top neighbors: ", topNeighbors)
-	fmt.Println("Done!")
+	topMovieNames := normalizedPrediction(4, 6, topNeighbors, users, movies)
+	fmt.Println("Top movies for user 4: ", topMovieNames)
 }
