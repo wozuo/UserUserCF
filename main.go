@@ -73,6 +73,7 @@ func pearsonCorrelation(users []User) []User {
 		users[i].AverageRating = avg_A
 		for j := 0; j < len(users); j++ {
 			notNull = 0
+			avg_B = 0
 			for k := 0; k < len(users[j].Ratings); k++ {
 				avg_B += users[j].Ratings[k]
 				if users[j].Ratings[k] != 0 {
