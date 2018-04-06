@@ -114,8 +114,10 @@ func notNormalizedPrediction(ownIndex int, n int, topNeighbors []KeyValue, users
 	for i := 0; i < len(movies); i++ {
 		var p1, p2 float64
 		for j := 0; j < len(topNeighbors); j++ {
-			p1 += (users[topNeighbors[j].Key].Ratings[i] * users[ownIndex].SimToUsers[j])
-			p2 += users[ownIndex].SimToUsers[j]
+			if users[topNeighbors[j].Key].Ratings[i] != 0 {
+				p1 += (users[topNeighbors[j].Key].Ratings[i] * users[ownIndex].SimToUsers[topNeighbors[j].Key])
+				p2 += users[ownIndex].SimToUsers[topNeighbors[j].Key]
+			}
 		}
 		var prediction = p1 / p2
 		topMovies = append(topMovies, KeyValue{i, prediction})
@@ -136,8 +138,10 @@ func normalizedPrediction(ownIndex int, n int, topNeighbors []KeyValue, users []
 	for i := 0; i < len(movies); i++ {
 		var p1, p2 float64
 		for j := 0; j < len(topNeighbors); j++ {
-			p1 += ((users[topNeighbors[j].Key].Ratings[i] - users[topNeighbors[j].Key].AverageRating) * users[ownIndex].SimToUsers[j])
-			p2 += users[ownIndex].SimToUsers[j]
+			if users[topNeighbors[j].Key].Ratings[i] != 0 {
+				p1 += ((users[topNeighbors[j].Key].Ratings[i] - users[topNeighbors[j].Key].AverageRating) * users[ownIndex].SimToUsers[topNeighbors[j].Key])
+				p2 += users[ownIndex].SimToUsers[topNeighbors[j].Key]
+			}
 		}
 		var prediction = users[ownIndex].AverageRating + (p1 / p2)
 		topMovies = append(topMovies, KeyValue{i, prediction})
@@ -153,13 +157,13 @@ func normalizedPrediction(ownIndex int, n int, topNeighbors []KeyValue, users []
 }
 
 func main() {
-	//users, movies := loadCSV()
-	//fmt.Println("Done! %v %v", users, movies)
 	users, movies := loadCSV()
 	users = pearsonCorrelation(users)
 	fmt.Println("Similarity values of user 4: ", users[4].SimToUsers)
 	topNeighbors := getTopSimNeighbors(4, 5, users[4].SimToUsers)
 	fmt.Println("Top neighbors: ", topNeighbors)
-	topMovieNames := normalizedPrediction(4, 6, topNeighbors, users, movies)
-	fmt.Println("Top movies for user 4: ", topMovieNames)
+	topMovieNames := notNormalizedPrediction(4, 6, topNeighbors, users, movies)
+	fmt.Println("(Not normalized) Top movies for user 4: ", topMovieNames)
+	topMovieNames = normalizedPrediction(4, 6, topNeighbors, users, movies)
+	fmt.Println("(Normalized) Top movies for user 4: ", topMovieNames)
 }
