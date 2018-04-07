@@ -163,7 +163,7 @@ func main() {
 	topNeighbors := getTopSimNeighbors(4, 5, users[4].SimToUsers)
 	fmt.Println("Top neighbors: ", topNeighbors)
 	topMovieNames := notNormalizedPrediction(4, 6, topNeighbors, users, movies)
-	fmt.Println("(Not normalized) Top movies for user 4: ", topMovieNames)
+	fmt.Println("(Not normalized) Recommended movies for user 4: ", topMovieNames)
 	topMovieNames = normalizedPrediction(4, 6, topNeighbors, users, movies)
-	fmt.Println("(Normalized) Top movies for user 4: ", topMovieNames)
+	fmt.Println("(Normalized) Recommended movies for user 4: ", topMovieNames)
 }
